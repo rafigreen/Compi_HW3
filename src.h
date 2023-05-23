@@ -21,13 +21,15 @@ public:
     bool is_function;
     // param types
     vector<string> params;
+    bool is_overriden;
 
-    Symbol(const string name, const string type, int offset, bool is_function, vector<string> params) : name(name),
-                                                                                                        type(type),
-                                                                                                        offset(offset),
-                                                                                                        is_function(
-                                                                                                                is_function),
-                                                                                                        params(params) {}
+    Symbol(const string name, const string type, int offset,
+           bool is_function, vector<string> params, bool is_overriden) : name(name),
+                                                                         type(type),
+                                                                         offset(offset),
+                                                                         is_function(is_function),
+                                                                        params(params),
+                                                                        is_overriden(is_overriden) {}
 
     ~Symbol() = default;
 };
@@ -47,7 +49,11 @@ public:
 
     void add_symbol(const Symbol &symbol);
 
-    bool symbol_exists(const string &name);
+    bool symbol_exists(const string &name, bool *is_func);
+
+    bool symbol_is_func(const string &name);
+    
+    bool symbol_overriden(const string &name, bool *exists);
 
     Symbol *get_symbol(const string &name);
 
@@ -71,11 +77,20 @@ public:
 
     void pop_scope();
 
-    void add_symbol(const string &name, const string &type, bool is_function, vector<string> params = vector<string>());
+    void add_symbol(const string &name, const string &type, bool is_function, 
+                    vector<string> params = vector<string>(), bool is_overriden);
+
+//!!!!!!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!!!
+//ADD HERE CODE FOR OVERRIDE!!!!!
+//!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!! MAYBE!!!!!
 
     void add_function_symbol(const string &name, const string &type, int offset);
 
-    bool symbol_exists(const string &name);
+    bool symbol_exists(const string &name, bool *is_func);
+
+    bool symbol_overriden(const string &name, bool *exists);
 
     bool check_loop();
 

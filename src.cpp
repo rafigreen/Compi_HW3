@@ -11,16 +11,42 @@ void SymbolTable::add_symbol(const Symbol &symbol) {
 }
 
 
-bool SymbolTable::symbol_exists(const string &name) {
+bool SymbolTable::symbol_exists(const string &name, bool *is_func) {
 //    std::cout << "Checking scope of size " << symbols.size() << "\n";
     for(int i = 0; i < symbols.size(); i++){
 //        std::cout << "iteration " << i << " Symbol is:" << symbols[i]->name << "\n";
         if (symbols[i]->name == name)
+        {
+            if(symbols[i]->is_function)
+                *is_func = true;
+            else
+                *is_func = false;
             return true;
+        }            
     }
+    *is_func = false;
     return false;
 }
 
+bool SymbolTable::symbol_overriden(const string &name, bool *exists)
+{
+    for(int i = 0; i < symbols.size(); i++){
+//        std::cout << "iteration " << i << " Symbol is:" << symbols[i]->name << "\n";
+        if (symbols[i]->name == name)
+        {
+            *exists = true;
+            if(symbols[i]->is_overriden)
+                return true;
+            else
+                return false;
+        }            
+    }
+    *exists = false;
+    return false;
+}
+
+///////////////////////////////////////////
+//  ////////////maybe need to change this/////////
 
 Symbol *SymbolTable::get_symbol(const string &name) {
     for (auto it = symbols.begin(); it != symbols.end(); ++it) {
@@ -39,11 +65,26 @@ TableStack::TableStack() : table_stack(), offsets() {
     add_symbol("printi", "void", true, {"int"});
 }
 
-bool TableStack::symbol_exists(const string &name) {
+bool TableStack::symbol_exists(const string &name, bool *is_func) {
 //    std::cout << "Checking all scopes " << table_stack.size() << "\n";
     for (auto it = table_stack.rbegin(); it != table_stack.rend(); ++it) {
         SymbolTable *current = *it;
-        if (current->symbol_exists(name))
+        if (current->symbol_exists(name, is_func))
+            return true;
+    }
+    return false;
+}
+
+bool TableStack::symbol_is_func(const string &name)
+{
+    return false;
+}
+
+bool TableStack::symbol_overriden(const string &name, bool *exists)
+{
+        for (auto it = table_stack.rbegin(); it != table_stack.rend(); ++it) {
+        SymbolTable *current = *it;
+        if (current->symbol_overriden(name, exists))
             return true;
     }
     return false;
@@ -66,7 +107,7 @@ Symbol *TableStack::get_symbol(const string &name) {
     return nullptr;
 }
 
-void TableStack::add_symbol(const string &name, const string &type, bool is_function, vector<string> params) {
+void TableStack::add_symbol(const string &name, const string &type, bool is_function, vector<string> params, bool is_overriden) {
     SymbolTable *current_scope = table_stack.back();
     int offset;
     if (is_function) {
@@ -76,15 +117,16 @@ void TableStack::add_symbol(const string &name, const string &type, bool is_func
         offsets.push_back(offset + 1);
     }
 
-    Symbol symbol = Symbol(name, type, offset, is_function, params);
+    Symbol symbol = Symbol(name, type, offset, is_function, params, is_overriden);
     current_scope->add_symbol(symbol);
 }
 
 void TableStack::add_function_symbol(const string &name, const string &type, int offset) {
     SymbolTable *current_scope = table_stack.back();
-    Symbol symbol = Symbol(name, type, offset, false, vector<string>());
+    Symbol symbol = Symbol(name, type, offset, false, vector<string>(), false);//????//????//???
     current_scope->add_symbol(symbol);
 }
+
 
 void TableStack::push_scope(bool is_loop, string return_type) {
     if (DEBUG)
@@ -157,7 +199,8 @@ void TableStack::print_scopes() {
 
 void TableStack::check_program() {
     SymbolTable *main_scope = tables.table_stack.front();
-    if (main_scope->symbol_exists("main")) {
+    bool dummy = false;
+    if (main_scope->symbol_exists("main", &dummy)) {
         Symbol *main_symbol = main_scope->get_symbol("main");
         if (main_symbol->type == "void") {
             if (main_symbol->params.size() == 0) {

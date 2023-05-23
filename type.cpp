@@ -66,20 +66,64 @@ Formals::Formals(FormalsList *formals_list) : Node(), formals_list() {
 
 //************FUNCDECL*****************
 // FuncDecl -> RetType ID LPAREN Formals RPAREN LBRACE OS Statements ES RBRACE
-FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params) {
+//!!!!!!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!!!
+//ADD HERE CODE FOR OVERRIDE!!!!!
+//!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!
+FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, bool overriden) {
     if (DEBUG)
         std::cout << "FuncDecl " << std::endl;
-    if (tables.symbol_exists(id->value)) {
+    
+    bool is_func = false;
+    bool sym_exists = tables.symbol_exists(id->value, &is_func);
+    if (sym_exists && !is_func)
+    {
+        output::errorDef(yylineno, id->value);
+        exit(0);
+    }
+
+    //RAFI ADDED THIS (it means a symbol already exists)
+/////////////////////////////////////
+    bool func_exists = false;
+    bool sym_overriden = tables.symbol_overriden(id->value, &func_exists);
+
+    vector<string> function_param_types = vector<string>();
+    for (int i = 0; i < params->formals_list.size(); ++i) 
+    {
+        auto it = params->formals_list[i];
+        function_param_types.push_back((*it).type);
+    }
+ /////////////########////////////////  
+ ////////////CHECK IF OVERRIDING SAME THING//////// 
+    if((overriden && sym_overriden))
+    {
+        Symbol* sym = tables.get_symbol(id->value);
+        if(params->formals_list.size() == sym->params.size())
+        for (int i = 0; i < params->formals_list.size(); ++i) 
+        {
+            auto it_1 = params->formals_list[i];
+            auto it_2 = sym->params[i];
+            if((*it_1).type != it_2)
+            {
+                break;
+            }
+        }       
+    }
+
+    
+/////////////########////////////////
+//THIS WOULD MEAN IT EXISTS (errorDef) OR IT IS NOT OVERRIDEN
+
+    if (func_exists && !sym_overriden) {
 
         output::errorDef(yylineno, id->value);
         exit(0);
     }
-    vector<string> function_param_types = vector<string>();
-    for (int i = 0; i < params->formals_list.size(); ++i) {
-        auto it = params->formals_list[i];
-        function_param_types.push_back((*it).type);
-    }
-    tables.add_symbol(id->value, return_type->type, true, function_param_types);
+
+
+/////////////CHECK HERE IF THERE IS A SEPERATE DATABASE FOR FUNCTIONS
+    tables.add_symbol(id->value, return_type->type, true, function_param_types, overriden);
     tables.push_scope(false, return_type->type);
     int offset = -1;
     for (int i = 0; i < params->formals_list.size(); ++i) {
@@ -202,6 +246,13 @@ Statement::Statement(Node *id, Exp *exp) : Node() {
     }
     // TODO: do something with value/type?
 }
+
+//!!!!!!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!!!
+//ADD HERE CODE FOR OVERRIDE!!!!!
+//!!!!!!!!!!!!!!!!!!!
+//!!!!!!!!!!!!!!!!!!!!!!!!
+
 
 // Statement -> Call SC
 Statement::Statement(Call *call) : Node() {
@@ -387,7 +438,9 @@ Call::Call(Node *terminal) : Node() {
         output::errorUndefFunc(yylineno, name);
         exit(0);
     }
-
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//CHANGE HERE FOR OVERRIDEN FROM NO ARGUMENTS TO SOME ARGUMENTS
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     if (symbol->params.size() > 0) {
         vector<string> converted_params;
         for (int i = 0; i < symbol->params.size(); ++i) {
@@ -401,25 +454,31 @@ Call::Call(Node *terminal) : Node() {
     value = symbol->name;
 }
 
+
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+//CHANGE HERE FOR OVERRIDEN FROM NO ARGUMENTS TO SOME ARGUMENTS
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Call -> ID LPAREN ExpList RPAREN
 Call::Call(Node *terminal, Node *exp_list) : Node() {
     if (DEBUG)
         std::cout << "Call " << terminal->value << std::endl;
     ExpList *expressions_list = dynamic_cast<ExpList *>(exp_list);
     string name = terminal->value;
-//    std::cout << "meir";
+//    std::cout << "WAKA";
     if (!tables.symbol_exists(name)) {
         output::errorUndefFunc(yylineno, name);
         exit(0);
     }
-//    std::cout << "meir1";
+//    std::cout << "WAKA1";
     Symbol *symbol = tables.get_symbol(name);
     if (!symbol->is_function) {
         output::errorUndefFunc(yylineno, name);
         exit(0);
     }
-
-//    std::cout << "meir2";
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!//
+//HERE WE NEED TO CHANGE FOR OVERRIDE
+//!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!//
+//    std::cout << "WAKA2";
     if (symbol->params.size() != expressions_list->expressions.size()) {
         vector<string> converted_params;
         for (int i = 0; i < symbol->params.size(); ++i) {
@@ -428,7 +487,7 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
         output::errorPrototypeMismatch(yylineno, name, converted_params);
         exit(0);
     }
-//    std::cout << "meir3";
+//    std::cout << "WAKA3";
     for (int i = 0; i < symbol->params.size(); i++) {
         if (symbol->params[i] != expressions_list->expressions[i]->type) {
             if (symbol->params[i] != "int" || expressions_list->expressions[i]->type != "byte") {
@@ -441,7 +500,7 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
             }
         }
     }
-//    std::cout << "meir4";
+//    std::cout << "WAKA4";
     type = symbol->type;
     value = symbol->name;
 }

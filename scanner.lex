@@ -10,7 +10,7 @@
 
 digit            ([0-9])
 letter           ([a-zA-Z])
-chars      ([a-zA-Z0-9])
+chars            ([a-zA-Z0-9])
 whitespace       ([\t\n\r ])
 
 %%

@@ -86,7 +86,7 @@ public:
 
 class FuncDecl : public Node {
 public:
-    FuncDecl(RetType *return_type, Node *id, Formals *params);
+    FuncDecl(RetType *return_type, Node *id, Formals *params, bool overriden);
 
     virtual ~FuncDecl() = default;
 };
