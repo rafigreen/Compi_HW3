@@ -78,7 +78,7 @@ public:
     void pop_scope();
 
     void add_symbol(const string &name, const string &type, bool is_function, 
-                    vector<string> params = vector<string>(), bool is_overriden);
+                    vector<string> params = vector<string>(), bool is_overriden = false);
 
 //!!!!!!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -95,6 +95,10 @@ public:
     bool check_loop();
 
     Symbol *get_symbol(const string &name);
+
+    int get_num_overrides(const string &name);
+
+    bool same_overriden_func_exists(const string &name, vector<string> function_param_types);
 
     void insert_symbol(SymbolTable &table, Symbol &symbol);
 

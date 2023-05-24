@@ -75,11 +75,6 @@ bool TableStack::symbol_exists(const string &name, bool *is_func) {
     return false;
 }
 
-bool TableStack::symbol_is_func(const string &name)
-{
-    return false;
-}
-
 bool TableStack::symbol_overriden(const string &name, bool *exists)
 {
         for (auto it = table_stack.rbegin(); it != table_stack.rend(); ++it) {
@@ -107,16 +102,53 @@ Symbol *TableStack::get_symbol(const string &name) {
     return nullptr;
 }
 
+
+//will only work because if there are multiple funcs with same name they MUST be overriden
+int TableStack::get_num_overrides(const string &name)
+{
+    int count = 0;
+    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
+        Symbol *symbol = (*it)->get_symbol(name);
+        if (symbol)
+            count++;
+    }
+    return count;
+}
+
+bool TableStack::same_overriden_func_exists(const string &name, vector<string> function_param_types)
+{
+    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
+        Symbol *symbol = (*it)->get_symbol(name);
+        if (symbol)
+        {
+            if(symbol->params.size() == function_param_types.size())
+            {
+                int i;
+                for (i = 0; i < symbol->params.size(); ++i) 
+                {
+                    auto it_1 = function_param_types[i];
+                    auto it_2 = symbol->params[i];
+                    if(it_1 != it_2)
+                    {
+                        break;
+                    }                    
+                }
+                if(i == symbol->params.size())
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
 void TableStack::add_symbol(const string &name, const string &type, bool is_function, vector<string> params, bool is_overriden) {
     SymbolTable *current_scope = table_stack.back();
-    int offset;
-    if (is_function) {
-        offset = 0;
-    } else {
+    int offset = 0;
+    if (!is_function) 
+    {
         offset = offsets.back();
         offsets.push_back(offset + 1);
     }
-
     Symbol symbol = Symbol(name, type, offset, is_function, params, is_overriden);
     current_scope->add_symbol(symbol);
 }

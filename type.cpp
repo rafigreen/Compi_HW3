@@ -71,10 +71,13 @@ Formals::Formals(FormalsList *formals_list) : Node(), formals_list() {
 //ADD HERE CODE FOR OVERRIDE!!!!!
 //!!!!!!!!!!!!!!!!!!!
 //!!!!!!!!!!!!!!!!!!!!!!!!
-FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, bool overriden) {
+OverrideDecl::OverrideDecl(bool overriden):Node(), is_overriden(overriden)
+{}
+
+FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, OverrideDecl *is_overriden) {
     if (DEBUG)
         std::cout << "FuncDecl " << std::endl;
-    
+    bool overriden = is_overriden->is_overriden;
     bool is_func = false;
     bool sym_exists = tables.symbol_exists(id->value, &is_func);
     if (sym_exists && !is_func)
@@ -87,6 +90,7 @@ FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, bool overrid
 /////////////////////////////////////
     bool func_exists = false;
     bool sym_overriden = tables.symbol_overriden(id->value, &func_exists);
+    int over_count = tables.get_num_overrides(id->value);
 
     vector<string> function_param_types = vector<string>();
     for (int i = 0; i < params->formals_list.size(); ++i) 
@@ -96,39 +100,49 @@ FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, bool overrid
     }
  /////////////########////////////////  
  ////////////CHECK IF OVERRIDING SAME THING//////// 
+    
+    //SAME OVERRIDEN FUNC ALREADY EXISTS
+    //   I.E. 
+    //  override int foo(int x){return x;}
+    //  override int foo(int x){return x;}
+    //  => error
     if((overriden && sym_overriden))
     {
-        Symbol* sym = tables.get_symbol(id->value);
-        if(params->formals_list.size() == sym->params.size())
-        for (int i = 0; i < params->formals_list.size(); ++i) 
+        if (tables.same_overriden_func_exists(id->value, function_param_types))
         {
-            auto it_1 = params->formals_list[i];
-            auto it_2 = sym->params[i];
-            if((*it_1).type != it_2)
-            {
-                break;
-            }
-        }       
+            output::errorDef(yylineno, id->value);
+            exit(0);
+        }             
     }
-
     
 /////////////########////////////////
 //THIS WOULD MEAN IT EXISTS (errorDef) OR IT IS NOT OVERRIDEN
 
-    if (func_exists && !sym_overriden) {
+    if (func_exists && !sym_overriden && !overriden) {
 
-        output::errorDef(yylineno, id->value);
+        output::errorFuncNoOverride(yylineno, id->value);
         exit(0);
     }
 
+    if(func_exists && !sym_overriden && overriden) {
 
+        output::errorFuncNoOverride(yylineno, id->value);
+        exit(0);
+    }
+
+    if(func_exists && sym_overriden && !overriden) {
+
+        output::errorOverrideWithoutDeclaration(yylineno, id->value);
+        exit(0);
+    }
 /////////////CHECK HERE IF THERE IS A SEPERATE DATABASE FOR FUNCTIONS
     tables.add_symbol(id->value, return_type->type, true, function_param_types, overriden);
     tables.push_scope(false, return_type->type);
+    bool dummy;
     int offset = -1;
     for (int i = 0; i < params->formals_list.size(); ++i) {
         auto it = params->formals_list[i];
-        if (tables.symbol_exists(it->value)) {
+        if (tables.symbol_exists(it->value, &dummy)) {
             output::errorDef(yylineno, it->value);
             exit(0);
         }
@@ -139,6 +153,8 @@ FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, bool overrid
 //    delete[] id;
 //    delete[] params;
 }
+
+
 
 //************STATEMENT****************
 // Statement -> BREAK SC / CONTINUE SC
@@ -185,7 +201,8 @@ Statement::Statement(Exp *exp, bool is_return) : Node() {
 Statement::Statement(Type *type, Node *id) : Node() {
     if (DEBUG)
         std::cout << "Statement Type ID: " << type->type << " " << id->value << std::endl;
-    if (tables.symbol_exists(id->value)) {
+    bool dummy;
+    if (tables.symbol_exists(id->value, &dummy)) {
         output::errorDef(yylineno, id->value);
         exit(0);
     }
@@ -198,8 +215,8 @@ Statement::Statement(Type *type, Node *id) : Node() {
 Statement::Statement(Type *type, Node *id, Exp *exp) : Node() {
     if (DEBUG)
         std::cout << "Statement -> Type ID ASSIGN Exp SC\n";
-
-    if (tables.symbol_exists(id->value)) {
+    bool dummy;
+    if (tables.symbol_exists(id->value, &dummy)) {
         output::errorDef(yylineno, id->value);
         exit(0);
     }
@@ -231,7 +248,8 @@ Statement::Statement(Type *type, Node *id, Exp *exp) : Node() {
 
 // Statement -> ID ASSIGN Exp SC
 Statement::Statement(Node *id, Exp *exp) : Node() {
-    if (!tables.symbol_exists(id->value)) {
+    bool dummy;
+    if (!tables.symbol_exists(id->value, &dummy)) {
         output::errorUndef(yylineno, id->value);
         exit(0);
     }
@@ -258,7 +276,8 @@ Statement::Statement(Node *id, Exp *exp) : Node() {
 Statement::Statement(Call *call) : Node() {
     if (DEBUG)
         std::cout << "Statement Call " << call->value << std::endl;
-    if (!tables.symbol_exists(call->value)) {
+    bool dummy;
+    if (!tables.symbol_exists(call->value, &dummy)) {
         output::errorUndefFunc(yylineno, call->value);
         exit(0);
     }
@@ -311,7 +330,8 @@ type) : Node(terminal->value), type(type) {
 Exp::Exp(bool is_var, Node *terminal) : Node(), is_var(is_var) {
     if (DEBUG)
         std::cout << "Exp -> ID, Call " << terminal->value << " is var: " << is_var << std::endl;
-    if (is_var && !tables.symbol_exists(terminal->value)) {
+    bool dummy;
+    if (is_var && !tables.symbol_exists(terminal->value, &dummy)) {
         output::errorUndef(yylineno, terminal->value);
         exit(0);
     }
@@ -329,12 +349,13 @@ Exp::Exp(Node *terminal1, Node *terminal2,
     if (DEBUG)
         std::cout << "Exp op " << exp1->type << " " << exp1->value << " " << exp2->type << " " << exp2->value
                   << std::endl;
-    if (exp1->is_var && !tables.symbol_exists(exp1->value)) {
+    bool dummy;
+    if (exp1->is_var && !tables.symbol_exists(exp1->value, &dummy)) {
         output::errorUndef(yylineno, terminal1->value);
         exit(0);
     }
-
-    if (exp2->is_var && !tables.symbol_exists(exp2->value)) {
+    
+    if (exp2->is_var && !tables.symbol_exists(exp2->value, &dummy)) {
         output::errorUndef(yylineno, terminal2->value);
         exit(0);
     }
@@ -427,8 +448,12 @@ Call::Call(Node *terminal) : Node() {
     if (DEBUG)
         std::cout << "Call " << terminal->value << std::endl;
 
+    bool func_exists = false;
+    bool sym_overriden = tables.symbol_overriden(terminal->value, &func_exists);
+    int over_count = tables.get_num_overrides(terminal->value);
     string name = terminal->value;
-    if (!tables.symbol_exists(name)) {
+    bool dummy;
+    if (!tables.symbol_exists(name, &dummy)) {
         output::errorUndefFunc(yylineno, name);
         exit(0);
     }
@@ -436,6 +461,11 @@ Call::Call(Node *terminal) : Node() {
     Symbol *symbol = tables.get_symbol(name);
     if (!symbol->is_function) {
         output::errorUndefFunc(yylineno, name);
+        exit(0);
+    }
+    if(sym_overriden && over_count > 1)
+    {
+        output::errorAmbiguousCall(yylineno, name);
         exit(0);
     }
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -446,7 +476,7 @@ Call::Call(Node *terminal) : Node() {
         for (int i = 0; i < symbol->params.size(); ++i) {
             converted_params.push_back(convert_to_upper_case(symbol->params[i]));
         }
-        output::errorPrototypeMismatch(yylineno, name, converted_params);
+        output::errorPrototypeMismatch(yylineno, name);
         exit(0);
     }
 
@@ -465,7 +495,8 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
     ExpList *expressions_list = dynamic_cast<ExpList *>(exp_list);
     string name = terminal->value;
 //    std::cout << "WAKA";
-    if (!tables.symbol_exists(name)) {
+    bool dummy;
+    if (!tables.symbol_exists(name, &dummy)) {
         output::errorUndefFunc(yylineno, name);
         exit(0);
     }
@@ -484,7 +515,7 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
         for (int i = 0; i < symbol->params.size(); ++i) {
             converted_params.push_back(convert_to_upper_case(symbol->params[i]));
         }
-        output::errorPrototypeMismatch(yylineno, name, converted_params);
+        output::errorPrototypeMismatch(yylineno, name);
         exit(0);
     }
 //    std::cout << "WAKA3";
@@ -495,7 +526,7 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
                 for (int j = 0; j < symbol->params.size(); ++j) {
                     converted_params.push_back(convert_to_upper_case(symbol->params[j]));
                 }
-                output::errorPrototypeMismatch(yylineno, name, converted_params);
+                output::errorPrototypeMismatch(yylineno, name);
                 exit(0);
             }
         }
@@ -516,4 +547,5 @@ void check_bool(Node *node) {
         exit(0);
     }
 }
+
 

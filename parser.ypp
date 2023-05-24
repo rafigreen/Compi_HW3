@@ -2,8 +2,8 @@
     #include <stdio.h>
     #include <iostream>
     #include "hw3_output.hpp"
-    #include "types.h"
-    #include "symbol_table.h"
+    #include "type.h"
+    #include "src.h"
 
     extern int yylineno;
     extern int yylex();
@@ -32,7 +32,7 @@
     %nonassoc ID
     %nonassoc NUM
     %nonassoc STRING
-    %nonassoc AUTO
+    %nonassoc OVERRIDE
 
     %right ASSIGN
 
@@ -52,10 +52,10 @@ Program: Funcs                                                      {$$ = new Pr
 Funcs: /*epsilon*/                                                  {}
        | FuncDecl Funcs                                             {}
 
-FuncDecl: OverRide RetType ID LPAREN Formals {$$ = new FuncDecl(dynamic_cast<RetType*>($2), $3, dynamic_cast<Formals*>($5), $1);} RPAREN LBRACE  Statements RBRACE {tables.pop_scope();}
+FuncDecl: OverRide RetType ID LPAREN Formals {$$ = new FuncDecl(dynamic_cast<RetType*>($2), $3, dynamic_cast<Formals*>($5), dynamic_cast<OverrideDecl*>($1));} RPAREN LBRACE  Statements RBRACE {tables.pop_scope();}
 
-OverRide: /*epsilon*/                                               {$$ = false;}
-          | OVERRIDE                                                {$$ = true;}
+OverRide: /*epsilon*/                                               {$$ = new OverrideDecl(false);}
+          | OVERRIDE                                                {$$ = new OverrideDecl(true);}
 
 RetType: Type                                                       {$$ = new RetType(dynamic_cast<Type*>($1)->type);}
          | VOID                                                     {$$ = new RetType("void");}

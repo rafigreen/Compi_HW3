@@ -20,12 +20,15 @@ namespace output{
     void errorDef(int lineno, const string& id);
     void errorUndefFunc(int lineno, const string& id);
     void errorMismatch(int lineno);
-    void errorPrototypeMismatch(int lineno, const string& id, vector<string>& argTypes);
+    void errorPrototypeMismatch(int lineno, const string& id);
     void errorUnexpectedBreak(int lineno);
     void errorUnexpectedContinue(int lineno);
     void errorMainMissing();
     void errorByteTooLarge(int lineno, const string& value);
-
+    void errorFuncNoOverride(int lineno, const string& id);
+    void errorOverrideWithoutDeclaration(int lineno, const string& id);
+    void errorAmbiguousCall(int lineno, const string& id);
+    void errorMainOverride(int yylineno);
 }
 
 #endif

@@ -84,9 +84,17 @@ public:
 };
 
 
+class OverrideDecl : public Node{
+public:
+    bool is_overriden;
+    OverrideDecl(bool overriden);
+       
+    virtual ~OverrideDecl() = default;
+};
+
 class FuncDecl : public Node {
 public:
-    FuncDecl(RetType *return_type, Node *id, Formals *params, bool overriden);
+    FuncDecl(RetType *return_type, Node *id, Formals *params, OverrideDecl *is_overriden);
 
     virtual ~FuncDecl() = default;
 };

@@ -66,8 +66,8 @@ void output::errorMismatch(int lineno){
     cout << "line " << lineno << ":" << " type mismatch" << endl;
 }
 
-void output::errorPrototypeMismatch(int lineno, const string& id, std::vector<string>& argTypes) {
-    cout << "line " << lineno << ": prototype mismatch, function " << id << " expects arguments " << typeListToString(argTypes) << endl;
+void output::errorPrototypeMismatch(int lineno, const string& id) {
+    cout << "line " << lineno << ": prototype mismatch, function " << id << endl;
 }
 
 void output::errorUnexpectedBreak(int lineno) {
@@ -75,7 +75,7 @@ void output::errorUnexpectedBreak(int lineno) {
 }
 
 void output::errorUnexpectedContinue(int lineno) {
-    cout << "line " << lineno << ":" << " unexpected continue statement" << endl;
+    cout << "line " << lineno << ":" << " unexpected continue statement" << endl;	
 }
 
 void output::errorMainMissing() {
@@ -84,4 +84,20 @@ void output::errorMainMissing() {
 
 void output::errorByteTooLarge(int lineno, const string& value) {
     cout << "line " << lineno << ": byte value " << value << " out of range" << endl;
+}
+
+void output::errorFuncNoOverride(int lineno, const string& id) {
+    cout << "line " << lineno << ": function " << id << " was declared before as non-override function" << endl;
+}
+
+void output::errorOverrideWithoutDeclaration(int lineno, const string& id) {
+    cout << "line " << lineno << ": function " << id << " attempt to override a function without declaring the current function as override" << endl;
+}
+
+void output::errorAmbiguousCall(int lineno, const string& id) {
+    cout << "line " << lineno << ": ambiguous call to overloaded function " << id << endl;
+}
+
+void output::errorMainOverride(int lineno){
+    cout << "line " << lineno << ": main is not allowed to be overridden" << endl;
 }
