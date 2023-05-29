@@ -80,6 +80,13 @@ FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, OverrideDecl
     bool overriden = is_overriden->is_overriden;
     bool is_func = false;
     bool sym_exists = tables.symbol_exists(id->value, &is_func);
+
+    if(id->value == "main" && is_overriden->is_overriden)
+    {
+        output::errorMainOverride(yylineno);
+        exit(0);
+    }
+
     if (sym_exists && !is_func)
     {
         output::errorDef(yylineno, id->value);
@@ -210,6 +217,11 @@ Statement::Statement(Type *type, Node *id) : Node() {
     value = type->value;//
 
 }
+//
+//
+//NEED TO ADD A VECTOR OF TYPES FOR OVERRIDEN TYPES
+//
+//
 
 // Statement -> Type ID ASSIGN Exp SC or Statement -> AUTO ID ASSIGN Exp SC
 Statement::Statement(Type *type, Node *id, Exp *exp) : Node() {
@@ -220,18 +232,53 @@ Statement::Statement(Type *type, Node *id, Exp *exp) : Node() {
         output::errorDef(yylineno, id->value);
         exit(0);
     }
-    if (type) {
+
+    bool is_overriden = tables.symbol_overriden(exp->value, &dummy);
+
+    if (type && !is_overriden) {
         if (!check_types_compatible(type->type, exp->type)) {
+            //std::cout << "WAKA1";
             output::errorMismatch(yylineno);
             exit(0);
         }
         if (type->type == "byte" && exp->type == "int") {
+           // std::cout << "WAKA2";
             output::errorMismatch(yylineno);
             exit(0);
         }
         tables.add_symbol(id->value, type->type, false);
-    } else {
+    }
+    else if(type && is_overriden)
+    {
+        vector<string> over_types = vector<string>();
+        tables.get_override_types(exp->value, over_types);
+        int i;
+        //std::cout << over_types.size();
+        for(i = 0; i < over_types.size(); i++)
+        {
+            //std::cout << over_types[i] << std::endl;
+            //std::cout <<"WAKA 4" << std::endl;
+            if((over_types[i] == exp->type) 
+                || (over_types[i] == "int" && exp->type == "byte"))
+            {
+                i = -1;
+                break;
+            }
+        }
+        //this means there are no overriden types that were called
+        if(i != -1)
+        {
+            output::errorMismatch(yylineno);
+            exit(0);
+        }
+        over_types.clear();
+        tables.add_symbol(id->value, type->type, false);
+    } 
+    
+    else 
+    {
         if (exp->type == "void" || exp->type == "string") {
+            //std::cout << "WAKA3";
             output::errorMismatch(yylineno);
             exit(0);
         }
@@ -255,10 +302,12 @@ Statement::Statement(Node *id, Exp *exp) : Node() {
     }
     Symbol *symbol = tables.get_symbol(id->value);
     if (symbol->is_function || !check_types_compatible(symbol->type, exp->type)) {
+       // std::cout << "WAKA4";
         output::errorMismatch(yylineno);
         exit(0);
     }
     if(symbol->type == "byte" && exp->type == "int"){
+        //std::cout << "WAKA5";
         output::errorMismatch(yylineno);
         exit(0);
     }
@@ -293,6 +342,7 @@ Statement::Statement(const string name, Exp *exp) {
     if (DEBUG)
         std::cout << "Exp (bool)\n";
     if (exp->type != "bool") {
+       // std::cout << "WAKA6";
         output::errorMismatch(yylineno);
         exit(0);
     }
@@ -309,12 +359,12 @@ RetType::RetType(
 
 // ***************EXP******************
 // Exp -> LPAREN Exp RPAREN
-Exp::Exp(Exp *exp) : Node(exp->value), type(exp->type) {
+Exp::Exp(Exp *exp) : Node(exp->value), type(exp->type), overriden_types() {
 }
 
 // Exp -> CONST(bool, num, byte, string)
 Exp::Exp(Node *terminal, string
-type) : Node(terminal->value), type(type) {
+type) : Node(terminal->value), type(type), overriden_types() {
     if (DEBUG)
         std::cout << "Exp Node+string " << type << " " << terminal->value << std::endl;
     if (type == "byte") {
@@ -327,13 +377,25 @@ type) : Node(terminal->value), type(type) {
 }
 
 //Exp -> ID, Call
-Exp::Exp(bool is_var, Node *terminal) : Node(), is_var(is_var) {
+
+////////////////////////////////////////
+////////ADD TYPES OF OVERRIDEN FUNCS FOR FUTURE CHECK
+///////////////////////////////////////
+
+Exp::Exp(bool is_var, Node *terminal) : Node(), is_var(is_var), overriden_types() {
     if (DEBUG)
         std::cout << "Exp -> ID, Call " << terminal->value << " is var: " << is_var << std::endl;
     bool dummy;
     if (is_var && !tables.symbol_exists(terminal->value, &dummy)) {
         output::errorUndef(yylineno, terminal->value);
         exit(0);
+    }
+    bool func_exists = false;
+    bool sym_overriden = tables.symbol_overriden(terminal->value, &func_exists);
+    int over_count = tables.get_num_overrides(terminal->value);
+    if(over_count > 1)
+    {
+        tables.get_override_types(terminal->value, this->overriden_types);////!!!!!///!!!!///
     }
     Symbol *symbol = tables.get_symbol(terminal->value);
     value = terminal->value;
@@ -342,7 +404,7 @@ Exp::Exp(bool is_var, Node *terminal) : Node(), is_var(is_var) {
 
 Exp::Exp(Node *terminal1, Node *terminal2,
          const string op,
-         const string type) {
+         const string type) : overriden_types() {
     Exp *exp1 = dynamic_cast<Exp *>(terminal1);
     Exp *exp2 = dynamic_cast<Exp *>(terminal2);
 
@@ -402,7 +464,7 @@ Exp::Exp(Node *terminal1, Node *terminal2,
 }
 
 // Exp -> LPAREN Type RPAREN Exp
-Exp::Exp(Node *exp, Node *type) {
+Exp::Exp(Node *exp, Node *type) : overriden_types(){
     Exp *converted_exp = dynamic_cast<Exp *>(exp);
     Type *converted_type = dynamic_cast<Type *>(type);
 
@@ -463,15 +525,15 @@ Call::Call(Node *terminal) : Node() {
         output::errorUndefFunc(yylineno, name);
         exit(0);
     }
-    if(sym_overriden && over_count > 1)
+    /*if(sym_overriden && over_count > 1)
     {
         output::errorAmbiguousCall(yylineno, name);
         exit(0);
-    }
+    }*/
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //CHANGE HERE FOR OVERRIDEN FROM NO ARGUMENTS TO SOME ARGUMENTS
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    if (symbol->params.size() > 0) {
+    if (!sym_overriden && symbol->params.size() > 0) {
         vector<string> converted_params;
         for (int i = 0; i < symbol->params.size(); ++i) {
             converted_params.push_back(convert_to_upper_case(symbol->params[i]));
@@ -479,6 +541,8 @@ Call::Call(Node *terminal) : Node() {
         output::errorPrototypeMismatch(yylineno, name);
         exit(0);
     }
+
+
 
     type = symbol->type;
     value = symbol->name;
@@ -489,9 +553,16 @@ Call::Call(Node *terminal) : Node() {
 //CHANGE HERE FOR OVERRIDEN FROM NO ARGUMENTS TO SOME ARGUMENTS
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 // Call -> ID LPAREN ExpList RPAREN
+
+//NEED TO CHECK IF AN EXPRESSION IS A FUNCTION CALL
 Call::Call(Node *terminal, Node *exp_list) : Node() {
     if (DEBUG)
         std::cout << "Call " << terminal->value << std::endl;
+    
+    bool func_exists = false;
+    bool sym_overriden = tables.symbol_overriden(terminal->value, &func_exists);
+    int over_count = tables.get_num_overrides(terminal->value);
+
     ExpList *expressions_list = dynamic_cast<ExpList *>(exp_list);
     string name = terminal->value;
 //    std::cout << "WAKA";
@@ -510,27 +581,69 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
 //HERE WE NEED TO CHANGE FOR OVERRIDE
 //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!//
 //    std::cout << "WAKA2";
-    if (symbol->params.size() != expressions_list->expressions.size()) {
-        vector<string> converted_params;
-        for (int i = 0; i < symbol->params.size(); ++i) {
-            converted_params.push_back(convert_to_upper_case(symbol->params[i]));
-        }
+    if (!sym_overriden && symbol->params.size() != expressions_list->expressions.size()) {
+        //std::cout << "WAKA3";
         output::errorPrototypeMismatch(yylineno, name);
         exit(0);
     }
-//    std::cout << "WAKA3";
+//    
+    vector<string> sym_params = vector<string>();
+    vector<string> over_types = vector<string>();
+    for (int j = 0; j < expressions_list->expressions.size(); ++j) {
+        sym_params.push_back(expressions_list->expressions[j]->type);
+        //std::cout << expressions_list->expressions[j]->type;
+    }
+   // Symbol *over_symbol = tables.get_overridden_symbol(name, sym_params);
+
+    bool exists;
+    
+
+    for (int j = 0; j < expressions_list->expressions.size(); ++j)
+    {
+        if(tables.symbol_overriden(expressions_list->expressions[j]->value, &exists))
+        {
+            tables.get_override_types(expressions_list->expressions[j]->value, over_types);
+            int i;
+            //std::cout << over_types.size();
+            for(i = 0; i < over_types.size(); i++)
+            {
+                //std::cout << over_types[i] << std::endl;
+                //std::cout <<"WAKA 4" << std::endl;
+                if((over_types[i] == expressions_list->expressions[j]->type) 
+                   || (over_types[i] == "int" && expressions_list->expressions[j]->type == "byte"))
+                {
+                    i = -1;
+                    break;
+                }
+            }
+            //this means there are no overriden types that were called
+            if(i != -1)
+            {
+                output::errorPrototypeMismatch(yylineno, name);
+                exit(0);
+            }
+            over_types.clear();
+        }
+    }
+
+if(!sym_overriden)
+{
     for (int i = 0; i < symbol->params.size(); i++) {
         if (symbol->params[i] != expressions_list->expressions[i]->type) {
-            if (symbol->params[i] != "int" || expressions_list->expressions[i]->type != "byte") {
-                vector<string> converted_params = vector<string>();
-                for (int j = 0; j < symbol->params.size(); ++j) {
-                    converted_params.push_back(convert_to_upper_case(symbol->params[j]));
-                }
+            if (symbol->params[i] != "int" || expressions_list->expressions[i]->type != "byte")
+            {
+                //std::cout << "WAKA5";
                 output::errorPrototypeMismatch(yylineno, name);
                 exit(0);
             }
         }
-    }
+    } 
+}
+
+
+
+
+
 //    std::cout << "WAKA4";
     type = symbol->type;
     value = symbol->name;

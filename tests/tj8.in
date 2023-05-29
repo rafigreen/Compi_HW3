@@ -1,7 +1,7 @@
 //override exp
 
 int f(){return 1;}
-override bool f(){return true;}
+override bool f(int x){return true;}
 
 void main(){
     return;

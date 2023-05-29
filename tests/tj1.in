@@ -1,12 +1,5 @@
-//rule 18.1
+//wrong main
 
-override bool f(){
-    return true;
-}
-override int f(){
-    return 0;
-}
-
-void main(){
-    bool a = true and f();
+int main(){
+    int x = 1;
 }

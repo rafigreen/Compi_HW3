@@ -96,7 +96,11 @@ public:
 
     Symbol *get_symbol(const string &name);
 
+    Symbol *get_overridden_symbol(const string &name, vector<string> exp_list);
+
     int get_num_overrides(const string &name);
+
+    void get_override_types(const string &name, vector<string> &override_types);
 
     bool same_overriden_func_exists(const string &name, vector<string> function_param_types);
 

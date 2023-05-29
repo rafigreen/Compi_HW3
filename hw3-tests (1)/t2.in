@@ -1,0 +1,16 @@
+override int myfunc(int x) {
+    x = x + 3;
+    return x;
+}
+
+override int myfunc(byte x) {
+    return x;
+}
+
+void main() {
+    bool c = false;
+    if (not c) {
+        int x = 6b;
+        printi(myfunc(x));
+    }
+}

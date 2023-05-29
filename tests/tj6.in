@@ -1,11 +1,9 @@
-//Ambiguous ambiguous? ambiguous ambiguous. AMBIGUOUS!
-
-override bool f(){int x = 1;}
-override int f(){int x = 1;}
-
-override int g(bool y){int x = 1;}
-override bool g(int y){int x = 1;}
+//https://piazza.com/class/lf8ghwc678z326/post/80
 
 void main(){
-    int a = g(f());
+    print("compiles");
+}
+
+override int main(bool x){
+    print("compiles?");
 }

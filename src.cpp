@@ -102,6 +102,29 @@ Symbol *TableStack::get_symbol(const string &name) {
     return nullptr;
 }
 
+Symbol *TableStack::get_overridden_symbol(const string &name, vector<string> exp_list)
+{
+    Symbol *symbol = nullptr;
+    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
+        symbol = (*it)->get_symbol(name);
+        if (symbol)
+        {
+            if(exp_list.size() == symbol->params.size())
+            {
+                int  i;
+                for (i = 0; i < symbol->params.size(); i++)
+                {
+                    if (symbol->params[i] != exp_list[i]) 
+                        if (symbol->params[i] != "int" || exp_list[i] != "byte")
+                            break;
+                }
+                if(i == exp_list.size())
+                    return symbol;
+            }     
+        }
+    }
+    return symbol;
+}
 
 //will only work because if there are multiple funcs with same name they MUST be overriden
 int TableStack::get_num_overrides(const string &name)
@@ -110,9 +133,24 @@ int TableStack::get_num_overrides(const string &name)
     for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
         Symbol *symbol = (*it)->get_symbol(name);
         if (symbol)
+        {
             count++;
+        }
     }
     return count;
+}
+
+void TableStack::get_override_types(const string &name, vector<string> &override_types)
+{
+    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
+        Symbol *symbol = (*it)->get_symbol(name);
+        if (symbol)
+        {
+            //std::cout<<symbol->type;
+            override_types.push_back(symbol->type);
+        }
+    }
+    
 }
 
 bool TableStack::same_overriden_func_exists(const string &name, vector<string> function_param_types)

@@ -105,6 +105,7 @@ public:
     string type;
     string value;
     bool is_var=false;
+    vector<string> overriden_types;
 
     Exp() : type("void"), value("") {}
 
