@@ -7,10 +7,23 @@
 extern TableStack tables;
 extern int yylineno;
 
+void this_is_a_test()
+{
+    //std::cout << "TESTING HERE"<< std::endl;
+    int x = 5;
+    int y = x - 5;
+    if(y != 0)
+        return;
+    else
+    {
+        return;
+    }
+}
+
 static bool check_types_compatible(string type1, string type2) {
     if (type1 == type2)
         return true;
-
+    this_is_a_test();
     if (type1 == "bool" || type2 == "bool" || type1 == "string" || type2 == "string" || type2 == "void")
         return false;
     return true;
@@ -50,6 +63,8 @@ FormalsList::FormalsList(Node *node, FormalsList *formals_list) : Node(), formal
 Formals::Formals() : Node(), formals_list() {
     if (DEBUG)
         std::cout << "Formals " << std::endl;
+        this_is_a_test();
+
 
 }
 
@@ -127,7 +142,7 @@ FuncDecl::FuncDecl(RetType *return_type, Node *id, Formals *params, OverrideDecl
 
     if (func_exists && !sym_overriden && !overriden) {
 
-        output::errorFuncNoOverride(yylineno, id->value);
+        output::errorDef(yylineno, id->value);
         exit(0);
     }
 
@@ -172,6 +187,8 @@ Statement::Statement(Node *node) {
             exit(0);
         }
     } else if (node->value == "continue") {
+        this_is_a_test();
+
         if (!tables.check_loop()) {
             output::errorUnexpectedContinue(yylineno);
             exit(0);
@@ -187,6 +204,7 @@ Statement::Statement(Exp *exp, bool is_return) : Node() {
         std::cout << "Statement Expression is_return:" << is_return << std::endl;
     SymbolTable *scope = tables.current_scope();
     string *return_type = scope->return_type;
+    this_is_a_test();
 
     if (*return_type != "" && *return_type != exp->type) {
         if (*return_type != "int" || exp->type != "byte") {
@@ -228,6 +246,7 @@ Statement::Statement(Type *type, Node *id, Exp *exp) : Node() {
     if (DEBUG)
         std::cout << "Statement -> Type ID ASSIGN Exp SC\n";
     bool dummy;
+    this_is_a_test();
     if (tables.symbol_exists(id->value, &dummy)) {
         output::errorDef(yylineno, id->value);
         exit(0);
@@ -303,6 +322,7 @@ Statement::Statement(Node *id, Exp *exp) : Node() {
     Symbol *symbol = tables.get_symbol(id->value);
     if (symbol->is_function || !check_types_compatible(symbol->type, exp->type)) {
        // std::cout << "WAKA4";
+        this_is_a_test();
         output::errorMismatch(yylineno);
         exit(0);
     }
@@ -339,6 +359,7 @@ Statement::Statement(Call *call) : Node() {
 }
 
 Statement::Statement(const string name, Exp *exp) {
+    this_is_a_test();
     if (DEBUG)
         std::cout << "Exp (bool)\n";
     if (exp->type != "bool") {
@@ -365,6 +386,7 @@ Exp::Exp(Exp *exp) : Node(exp->value), type(exp->type), overriden_types() {
 // Exp -> CONST(bool, num, byte, string)
 Exp::Exp(Node *terminal, string
 type) : Node(terminal->value), type(type), overriden_types() {
+    this_is_a_test();
     if (DEBUG)
         std::cout << "Exp Node+string " << type << " " << terminal->value << std::endl;
     if (type == "byte") {
@@ -383,6 +405,7 @@ type) : Node(terminal->value), type(type), overriden_types() {
 ///////////////////////////////////////
 
 Exp::Exp(bool is_var, Node *terminal) : Node(), is_var(is_var), overriden_types() {
+    this_is_a_test();
     if (DEBUG)
         std::cout << "Exp -> ID, Call " << terminal->value << " is var: " << is_var << std::endl;
     bool dummy;
@@ -405,6 +428,7 @@ Exp::Exp(bool is_var, Node *terminal) : Node(), is_var(is_var), overriden_types(
 Exp::Exp(Node *terminal1, Node *terminal2,
          const string op,
          const string type) : overriden_types() {
+            this_is_a_test();
     Exp *exp1 = dynamic_cast<Exp *>(terminal1);
     Exp *exp2 = dynamic_cast<Exp *>(terminal2);
 
@@ -428,6 +452,7 @@ Exp::Exp(Node *terminal1, Node *terminal2,
     }
 
     if (type == "bool") {
+        this_is_a_test();
 //        bool t1, t2, res;
         if (exp1->type != "bool" || exp2->type != "bool") {
             output::errorMismatch(yylineno);
@@ -438,6 +463,7 @@ Exp::Exp(Node *terminal1, Node *terminal2,
     } else if (type == "int") {
 
         if ((exp1->type != "int" && exp1->type != "byte") || (exp1->type != "int" && exp1->type != "byte")) {
+            this_is_a_test();
             output::errorMismatch(yylineno);
             exit(0);
         }
@@ -451,6 +477,7 @@ Exp::Exp(Node *terminal1, Node *terminal2,
             std::cout << "op return type is " << this->type << "\n";
 
     } else if (type == "relop") {
+        this_is_a_test();
         if (!check_types_compatible(exp1->type, exp2->type)) {
             output::errorMismatch(yylineno);
             exit(0);
@@ -465,6 +492,7 @@ Exp::Exp(Node *terminal1, Node *terminal2,
 
 // Exp -> LPAREN Type RPAREN Exp
 Exp::Exp(Node *exp, Node *type) : overriden_types(){
+    this_is_a_test();
     Exp *converted_exp = dynamic_cast<Exp *>(exp);
     Type *converted_type = dynamic_cast<Type *>(type);
 
@@ -481,6 +509,7 @@ Exp::Exp(Node *exp, Node *type) : overriden_types(){
 
 // ExpList -> Exp
 ExpList::ExpList(Node *exp) : Node(), expressions() {
+    this_is_a_test();
     if (DEBUG)
         std::cout << "ExpList -> Exp: " << exp->value << "\n";
     Exp *expression = dynamic_cast<Exp *>(exp);
@@ -490,6 +519,7 @@ ExpList::ExpList(Node *exp) : Node(), expressions() {
 
 // ExpList -> Exp, ExpList
 ExpList::ExpList(Node *exp_list, Node *exp) : Node(), expressions() {
+    this_is_a_test();
     if (DEBUG)
         std::cout << "ExpList -> Exp,ExpList" << "\n";
     expressions.push_back(dynamic_cast<Exp *>(exp));
@@ -507,6 +537,7 @@ ExpList::ExpList(Node *exp_list, Node *exp) : Node(), expressions() {
 
 // Call -> ID LPAREN RPAREN
 Call::Call(Node *terminal) : Node() {
+    this_is_a_test();
     if (DEBUG)
         std::cout << "Call " << terminal->value << std::endl;
 
@@ -591,7 +622,7 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
     vector<string> over_types = vector<string>();
     for (int j = 0; j < expressions_list->expressions.size(); ++j) {
         sym_params.push_back(expressions_list->expressions[j]->type);
-        //std::cout << expressions_list->expressions[j]->type;
+        //std::cout << expressions_list->expressions[j]->type << std::endl;
     }
    // Symbol *over_symbol = tables.get_overridden_symbol(name, sym_params);
 
@@ -610,7 +641,7 @@ Call::Call(Node *terminal, Node *exp_list) : Node() {
                 //std::cout << over_types[i] << std::endl;
                 //std::cout <<"WAKA 4" << std::endl;
                 if((over_types[i] == expressions_list->expressions[j]->type) 
-                   || (over_types[i] == "int" && expressions_list->expressions[j]->type == "byte"))
+                   || (expressions_list->expressions[j]->type == "byte" && over_types[i] == "int"))
                 {
                     i = -1;
                     break;
@@ -640,7 +671,12 @@ if(!sym_overriden)
     } 
 }
 
-
+int num_compat = tables.num_compatible_func(name, sym_params);
+if(num_compat > 1)
+{
+    output::errorAmbiguousCall(yylineno, name);
+    exit(0);
+}
 
 
 

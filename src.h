@@ -102,7 +102,9 @@ public:
 
     void get_override_types(const string &name, vector<string> &override_types);
 
-    bool same_overriden_func_exists(const string &name, vector<string> function_param_types);
+    bool same_overriden_func_exists(const string &name, vector<string> &function_param_types);
+
+    int num_compatible_func(const string &name, vector<string> &function_param_types);
 
     void insert_symbol(SymbolTable &table, Symbol &symbol);
 

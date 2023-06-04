@@ -4,6 +4,18 @@
 
 extern TableStack tables;
 
+void this_is_a_test()
+{
+    int x = 5;
+    int y = x - 5;
+    if(y != 0)
+        return;
+    else
+    {
+        return;
+    }
+}
+
 void SymbolTable::add_symbol(const Symbol &symbol) {
     symbols.push_back(new Symbol(symbol));
     if (symbol.offset >= 0)
@@ -67,6 +79,7 @@ TableStack::TableStack() : table_stack(), offsets() {
 
 bool TableStack::symbol_exists(const string &name, bool *is_func) {
 //    std::cout << "Checking all scopes " << table_stack.size() << "\n";
+    this_is_a_test();
     for (auto it = table_stack.rbegin(); it != table_stack.rend(); ++it) {
         SymbolTable *current = *it;
         if (current->symbol_exists(name, is_func))
@@ -86,6 +99,7 @@ bool TableStack::symbol_overriden(const string &name, bool *exists)
 }
 
 bool TableStack::check_loop() {
+    this_is_a_test();
     for (auto it = table_stack.rbegin(); it != table_stack.rend(); ++it) {
         SymbolTable *current = *it;
         if (current->is_loop)
@@ -130,11 +144,12 @@ Symbol *TableStack::get_overridden_symbol(const string &name, vector<string> exp
 int TableStack::get_num_overrides(const string &name)
 {
     int count = 0;
-    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
-        Symbol *symbol = (*it)->get_symbol(name);
-        if (symbol)
+    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) 
+    {
+        for(auto symbol = (*it)->symbols.begin(); symbol != (*it)->symbols.end(); ++symbol)
         {
-            count++;
+            if((*symbol)->name == name)
+                count ++;
         }
     }
     return count;
@@ -143,40 +158,86 @@ int TableStack::get_num_overrides(const string &name)
 void TableStack::get_override_types(const string &name, vector<string> &override_types)
 {
     for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
-        Symbol *symbol = (*it)->get_symbol(name);
-        if (symbol)
+        for(auto symbol = (*it)->symbols.begin(); symbol != (*it)->symbols.end(); ++symbol)
         {
-            //std::cout<<symbol->type;
-            override_types.push_back(symbol->type);
+            if((*symbol)->name == name)
+            {
+                //std::cout<<symbol->type;
+                override_types.push_back((*symbol)->type);
+            }  
         }
-    }
-    
+    }    
 }
 
-bool TableStack::same_overriden_func_exists(const string &name, vector<string> function_param_types)
+bool TableStack::same_overriden_func_exists(const string &name, vector<string> &function_param_types)
 {
-    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) {
-        Symbol *symbol = (*it)->get_symbol(name);
-        if (symbol)
+    for (auto it = table_stack.begin(); it != table_stack.end(); ++it)
+    {
+        for(auto symbol = (*it)->symbols.begin(); symbol != (*it)->symbols.end(); ++symbol)
         {
-            if(symbol->params.size() == function_param_types.size())
+            if ((*symbol)->name == name)
             {
-                int i;
-                for (i = 0; i < symbol->params.size(); ++i) 
+                if((*symbol)->params.size() == function_param_types.size())
                 {
-                    auto it_1 = function_param_types[i];
-                    auto it_2 = symbol->params[i];
-                    if(it_1 != it_2)
+                    int i;
+                    for (i = 0; i < (*symbol)->params.size(); ++i) 
                     {
-                        break;
-                    }                    
+                        auto it_1 = function_param_types[i];
+                        auto it_2 = (*symbol)->params[i];
+                        if(it_1 != it_2)
+                        {
+                            break;
+                        }                    
+                    }
+                    if(i == (*symbol)->params.size())
+                        return true;
                 }
-                if(i == symbol->params.size())
-                    return true;
+            }
+        }
+
+    }
+    return false;
+}
+
+
+
+
+int TableStack::num_compatible_func(const string &name, vector<string> &function_param_types)
+{
+	int counter = 0;
+    for (auto it = table_stack.begin(); it != table_stack.end(); ++it) 
+    {
+        //Symbol *symbol = (*it)->get_symbol(name);
+        for (auto symbol = (*it)->symbols.begin(); symbol != (*it)->symbols.end(); ++symbol)
+        {
+            if ((*symbol)->name == name)        
+            {
+                if((*symbol)->params.size() == function_param_types.size())
+                {
+                    int i;
+                    for (i = 0; i < (*symbol)->params.size(); ++i) 
+                    {
+                        auto it_1 = function_param_types[i];
+                        auto it_2 = (*symbol)->params[i];
+                        if(it_1 != it_2)
+                        {
+						    if(it_1 == "byte" && it_2 == "int")
+						    {
+						    	continue;
+						    }
+						    else
+						    {
+						    	break;
+						    }                    
+                        }                  
+                    }
+                    if(i == (*symbol)->params.size())
+                        counter++;
+                }
             }
         }
     }
-    return false;
+    return counter;
 }
 
 void TableStack::add_symbol(const string &name, const string &type, bool is_function, vector<string> params, bool is_overriden) {
@@ -251,7 +312,7 @@ void TableStack::pop_scope() {
 //    std::cout << "max offset is: " << table_stack.back()->max_offset << "\n";
     delete scope;
 
-
+    
 }
 
 void TableStack::print_scopes() {

@@ -8,6 +8,8 @@
 using std::string;
 using std::vector;
 
+void this_is_a_test();
+
 class Node {
 public:
     string value;
